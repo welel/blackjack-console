@@ -1,102 +1,216 @@
-class Handler:
-    sheet = {
-        0: 0,
-        1: 1
-    }
-    
-    answer_code = {
-        'S': 1, # start
-        'L': 0, # leave
-    }
-    
-    def convert(self, answer):
-        return self.answer_code[answer]
-    
-    def get_code(self, answer):
-        code = self.convert(answer)
-        return self.sheet[code]
-        
-    
-
-
-class Player:
-    bank = 0
-    
-    def __init__(self, bank):
-        self.bank = bank
-        
-    def ask_start(self):
-        print('Start game or leave? (S\L)\n')
-        answer = input()
-        return answer
-        
-    def ask_yes(self):
-        print('Yes or no?\n')
-        answer = input()
-        return answer
-        
-    def ask_bet(self):
-        print('Input bet: ')
-        bet = int(input())
-        return bet
+'''This module implemets blackjack game.
+'''
+import random
 
 
 
-class Game:
-    handler = None
+class InvalidCardValueError(Exception):
+
+    def __init__(self, message):
+        Exception.__init__(self, message)
+
+
+class InvalidSuitValueError(Exception):
+
+    def __init__(self, message):
+        Exception.__init__(self, message)
+
+
+class BaseCard(object):
+
+    values = ('A', 'K', 'Q', 'J',
+        '10', '9', '8', '7', '6',
+        '5', '4', '3', '2'
+        )
+    suits = ('d', 'c', 'h', 's')
     
-    dealer = None
-    player = None
-    table = None
-    
-    min_ = 500
-    max_ = 10000
-    
-    def __init__(self, handler, player):
-        self.handler = handler
-        self.player = player
-    
-    def close(self):
-        print('Do you really wanna close game?\n')
-        answer = player.ask_yes()
-        if answer == 'Yes':
-            # save statements
-            print('Thanks for game')
-            exit(1)
+    def __init__(self, value, suit):
+        if value not in BaseCard.values:
+            raise InvalidCardValueError(
+                f'expected values is {BaseCard.values}, but yours is {value}'
+                )
+        self.value = value
+        if self.value.isdigit():
+            self.score = int(self.value)
+        elif self.value == 'A':
+            self.score = 11
         else:
-            return True
-    
-    
-    def run(self):
-        print('Game is started.\n')
+            self.score = 10
+            
+        if suit not in BaseCard.suits:
+            raise InvalidSuitValueError(
+                f'expected values is {BaseCard.suits}, but yours is {suit}'
+                )
+        self.suit = suit
         
+    
+class Card(BaseCard):
+    
+    def __init__(self, value, suit):
+        super().__init__(value, suit) 
+        
+    def __str__(self):
+        return f'[{self.value}{self.suit}]'
+        
+    def __repr__(self):
+        return f'Card({self.value}, {self.suit})'
+
+
+class CardDeck(BaseCard):
+
+    def __init__(self, shuffled=False):
+        deck = []
+        for value in BaseCard.values:
+            for suit in BaseCard.suits:
+                deck.append(Card(value, suit))
+        if shuffled:
+            random.shuffle(deck)
+        self.deck = deck
+        
+    def __getitem__(self, slice_):
+        return self.deck[slice_]
+        
+    def __str__(self):
+        return f'Deck: {list(map(lambda x: str(x), self.deck))}'
+
+
+class DecksHolder(CardDeck):
+    
+    def __init__(self, decks_number=1):
+        cards = []
+        for i in range(decks_number):
+            cards.extend(CardDeck())
+        random.shuffle(cards)
+        self.cards = cards
+        
+    def __iter__(self):
+        i = len(self.cards)
         while True:
-            while True:
-                answer = player.ask_start()
-                code = handler.get_code(answer)
-                if code == 1:
-                    break
-                self.close()
+            i -= 1
+            if i < 0:
+                i = len(self.cards)-1
+                random.shuffle(self.cards)
+            yield self.cards[i] 
 
-            while True:
-                bet = player.ask_bet()
-                if self.min_ > bet or bet > self.max_:
-                    print(f'{self.min_} > {bet} > {self.max_}')
-                    print('You\'r in wrong limits! Bet right.\n') 
-                elif bet > player.bank:
-                    print('You\'r out of money! Bet less.\n')
-                else:
-                    player.bank -= bet
-                    break
 
-        print('Game is ended.\n')
+class BaseUser(object):
+    def __init__(self, name='unknown user', bankroll=0):
+        self.name = name
+        self.bankroll = bankroll
         
+
+class Player(BaseUser):
+    def __init__(self, name='unknown player', bankroll=0):
+        super().__init__(name, bankroll)
+
+
+class Dealer(BaseUser):
+    def __init__(self, name='Dealer', bankroll=500000):
+        super().__init__(name, bankroll)
+
+
+class Box(object):   
+    def __init__(self, user):
+        self.user = user
+        self.cards = []
+
+
+class PlayerBox(Box):   
+    def __init__(self, player):
+        super().__init__(player)
+
+
+class DealerBox(Box):
+    def __init__(self, dealer):
+        super().__init__(dealer)
+
+
+class TablePlace(object):
+
+    def __init__(self, user=BaseUser()):
+        self.user = user
+        self.boxes = [Box(self.user)]
+  
+  
+class PlayerTablePlace(TablePlace):
+
+    def __init__(self, player=Player()):
+        super().__init__(player)
+        self.boxes = [PlayerBox(self.user)]
+
+
+class DealerTablePlace(TablePlace):
+
+    def __init__(self, dealer=Dealer()):
+        super().__init__(dealer)
+        self.boxes = [DealerBox(self.user)]
+
+
+class Table(object):
+    
+    def __init__(self):
+        self.dealer_place = DealerTablePlace()
+        self.player_place = PlayerTablePlace()
+
+    def set_dealer(self, dealer):
+        self.dealer_place = DealerTablePlace(dealer)
+        
+    def set_player(self, player):
+        self.player_place = (PlayerTablePlace(player))
+
+    def set_decks_holder(self, decks_holder):
+        self.decks_holder = decks_holder
+        
+
+class Dialog(object):
+
+    def ask(self, user, question: str,
+            answers: list, instruction: str,
+            user_answer_type):
+        print(f'{user.name}, {question}')
+        print(f'Answers: {answers}')
+        print(instruction)
+        return user_answer_type(input())
+        
+    def say(self, message):
+        print(message)
+        
+
+ 
+class Game(object):
+    
+    def set_table(self, table):
+        self.table = table
+
+    def run(self):
+        dialog = Dialog()
+        player_answer = dialog.ask(player, 'How are you?', ['Good', 'Bad'],
+                                   '(G)ood/(B)ad', str
+                                   )
+        print(player_answer)
+
+
+
 
 if __name__ == '__main__':
-    handler = Handler()
-    player = Player(50000)
+    table = Table()
     
-    game = Game(handler, player)
+    dealer = Dealer('Dealer Jack', 1000000)
+    player = Player('Nick', 50000)
+    decks_holder = DecksHolder(6)
+    
+    table.set_dealer(dealer)
+    table.set_player(player)
+    table.set_decks_holder(decks_holder)
+    
+    game = Game()
+    game.set_table = table
+    
     game.run()
-
-
+    
+    
+    
+        
+    
+    
+    
