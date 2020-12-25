@@ -41,23 +41,24 @@ class Card(object):
         
     def __str__(self): return f'[{self.value}{self.suit}]' 
     def __repr__(self): return f'Card({self.value}, {self.suit})'
+    def __eq__(self, other): return self.score == other.score
 
-    def get_show_struct(self):
+    def get_suit_struct(self):
         show_struct = [
-            ' ____',
-            f'|{self.value}  |',
-            f'| {self.suit} |',
-            f'|__{self.value}|'
+            ' ____ ',
+            f'|{self.value}  | ',
+            f'| {self.suit} | ',
+            f'|__{self.value}| '
         ]
         return show_struct
 
     @staticmethod
-    def get_show_secret_struct():
+    def get_hidden_suit_struct():
         show_struct = [
-            ' ____',
-            '|?  |',
-            '| ? |',
-            '|__?|'
+            ' ____ ',
+            '|?  | ',
+            '| ? | ',
+            '|__?| '
         ]
         return show_struct
 
