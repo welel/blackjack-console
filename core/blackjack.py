@@ -186,6 +186,13 @@ class Game():
         self.player_box = PlayerBox(player)
         self.dholder = iter(DecksHolder(decks_number))
         self.delay = 2
+        
+    def close(self):
+        """Closes the game (the exit point of game)."""
+        print('\nThank you for the game,',
+            self.player_box.user.name + '!\n'
+        )
+        exit(1)
 
     def give_card(self, box):
         """Adds one card to a user's box."""
@@ -197,7 +204,6 @@ class Game():
         print(self.dealer_box, end='\n\n')
         print('Players hand:')
         print(self.player_box, end='\n\n')
-        time.sleep(self.delay)
         
     def clear_boxes_state(self):
         """Clears a state of the boxes."""
@@ -221,10 +227,11 @@ class Game():
             if ans in ('h', 'hit'):
                 self.give_card(self.player_box)
             elif ans in ('s', 'stand'):
-                return 'won'
+                time.sleep(self.delay)
+                return 'stand'
             elif ans in ('d', 'double'):
                 self.give_card(self.player_box)
-                return 'won'
+                return 'double'
             self.print_boxes()
             if self.player_box.score > 21:
                 return 'lost'
@@ -239,6 +246,7 @@ class Game():
         """
         self.dealer_box.show_hidden_card()
         self.print_boxes()
+        time.sleep(self.delay)
         while True:
             if self.dealer_box.score > 21:
                 return 'lost'
@@ -248,6 +256,7 @@ class Game():
                 return 'draw'
             self.give_card(self.dealer_box)
             self.print_boxes()
+            time.sleep(self.delay)
     
     def start(self, speed=2):
         """Main loop of the game logic."""
@@ -271,7 +280,7 @@ class Game():
                              answers='[Press \'Enter\' / (e)xit]'
                              ).lower()
             if ans in ('exit', 'e'):
-                break
+                self.close()
             elif ans:
                 continue 
               
