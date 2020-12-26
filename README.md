@@ -1,4 +1,4 @@
-![](details\header.png)
+<img src="details/header.png">
 
 # Console BlackJack 
 
