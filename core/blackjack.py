@@ -8,6 +8,10 @@ so here too, and so on. Designed game has one principal difference with
 mechanic in reality is random shuffling of cards (and decisions of the
 dealer of course).
 
+TODO:
+    * Slahs Ace represent (14/3).
+    * Keylook.
+
 """
 
 import time
@@ -17,7 +21,8 @@ from .cards import DecksHolder, CARD_BACK_STRUCT
 
 
 def ask(instraction: str, answer_type,
-            answers: str='', user=None
+            answers: str='', placeholder='',
+            user=None
     ):
     """Asks a user a question and returns his answer.
     
@@ -28,13 +33,19 @@ def ask(instraction: str, answer_type,
         user (BaseUser): A user who is being asked.
     
     """
-    if user:
-        print(user.name + ',', instraction)
-    else:
-        print(instraction)
-    if answers:
-        print('\tAnswers:' + answers)
-    return answer_type(input())
+    while True:
+        if user:
+            print(user.name + ',', instraction)
+        else:
+            print(instraction)
+        if answers:
+            print('\tAnswers:' + answers)
+        try:
+            ans = answer_type(input(placeholder))
+        except ValueError:
+            print(f'Use {answer_type} type for answering.')
+            continue
+        return ans
 
 
 class Box():
@@ -186,13 +197,43 @@ class Game():
         self.player_box = PlayerBox(player)
         self.dholder = iter(DecksHolder(decks_number))
         self.delay = 2
-        
+
     def close(self):
         """Closes the game (the exit point of game)."""
         print('\nThank you for the game,',
             self.player_box.user.name + '!\n'
         )
         exit(1)
+
+    def make_bet(self):
+        """Asks a bet from user and returns it."""
+        while True:
+            print('Dealer have {bank} coins.\n'.format(
+                bank=self.dealer_box.user.bank)
+            )
+            ans = ask('you have {bank} coins. Make a bet.\n'.format(
+                        bank=self.player_box.user.bank), int,
+                    placeholder='Bet: ', user=self.player_box.user
+            )
+            if ans <= self.player_box.user.bank:
+                self.bet = ans
+                return
+            else:
+                print('\n'*100+'You bet a lot, you don\'t have that much.\n',
+                    'Bet less.\n')
+                continue
+               
+    def count_winner(self, winner: str):
+        """Counts the winner and changes bank accounts."""
+        if winner != 'draw':
+            if winner == 'dealer':
+                print('You\'r lost!\n\n')
+                self.bet *= -1 
+            else:
+                print('You\'r won!\n\n')
+            self.dealer_box.user.bank -= self.bet
+            self.player_box.user.bank += self.bet
+            input('\nPress \'Enter\' to continue...')
 
     def give_card(self, box):
         """Adds one card to a user's box."""
@@ -218,7 +259,11 @@ class Game():
         reached 21+.
         
         """
-        answers = ['(h)it', '(s)tand', '(d)double']
+        answers = ['(h)it', '(s)tand']
+        if (self.bet <= self.player_box.user.bank-self.bet and
+            self.bet <= self.dealer_box.user.bank-self.bet
+           ):
+            answers.append('(d)double')
         while True:
             answers = answers if len(self.player_box) == 2 else answers[:2]
             ans = ask('your move:', str, 
@@ -228,13 +273,16 @@ class Game():
                 self.give_card(self.player_box)
             elif ans in ('s', 'stand'):
                 time.sleep(self.delay)
-                return 'stand'
+                return 'further'
             elif ans in ('d', 'double'):
+                self.bet *= 2
                 self.give_card(self.player_box)
-                return 'double'
+                if self.player_box.score > 21:
+                    return 'dealer'
+                return 'further'
             self.print_boxes()
             if self.player_box.score > 21:
-                return 'lost'
+                return 'dealer'
     
     def dealer_decide(self):
         """The branch of dealer's decisions.
@@ -249,9 +297,9 @@ class Game():
         time.sleep(self.delay)
         while True:
             if self.dealer_box.score > 21:
-                return 'lost'
+                return 'player'
             if self.dealer_box.score > self.player_box.score:
-                return 'won'
+                return 'dealer'
             if self.dealer_box.score == self.player_box.score:
                 return 'draw'
             self.give_card(self.dealer_box)
@@ -285,38 +333,31 @@ class Game():
                 continue 
               
             self.clear_boxes_state()
+            self.make_bet()
             self.give_card(dealer_box)
             self.give_card(dealer_box)
             self.give_card(player_box)
             self.give_card(player_box)
-            
             self.print_boxes()
             
             if dealer_box.score == 11:
                 print('[NotImplementedYet]: ask for insurance\n\n')
             
             if player_box.score == 21:
-                print('Black Jack!\n You\'r won!\n\n')
-                input('\nPress \'Enter\' to continue...')
+                print('Black Jack!\n')
+                self.count_winner('player')
                 continue
                 
             if player_box.cards[0] == player_box.cards[1]:
                 print('[NotImplementedYet]: ask for split\n\n')
             
             result = self.player_decide()
-            if result == 'lost':
-                print('You\'r lost!\n\n')
-                input('\nPress \'Enter\' to continue...')
+            if result != 'further':
+                self.count_winner(result)
                 continue
             
-            result = self.dealer_decide()
-            if result == 'lost':
-                print('You\'r won!\n\n')
-            elif result == 'won':
-                print('You\'r lost!\n\n')
-            elif result == 'draw':
-                print('Draw')
-    
-            input('\nPress \'Enter\' to continue...')
+            winner = self.dealer_decide()
+            self.count_winner(winner)
+            
         return 0
 
