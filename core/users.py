@@ -11,20 +11,20 @@ class BaseUser():
     
     """
     
-    def __init__(self, name='unknown user', bank=0):
+    def __init__(self, name='Unknown user', bank=0):
         self.name = name
-        self.bankroll = bank
+        self.bank = bank
 
 
 class Player(BaseUser):
     """This class represents the player."""
     
-    def __init__(self, name='unknown player', bank=0):
+    def __init__(self, name='Unknown player', bank=200):
         super().__init__(name, bank)
 
 
 class Dealer(BaseUser):
     """This class represents the dealer."""
     
-    def __init__(self, name='Dealer', bank=500000):
+    def __init__(self, name='Dealer', bank=5000):
         super().__init__(name, bank)
