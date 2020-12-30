@@ -10,3 +10,13 @@ This project is the console game Blackjack written with Python 3. One player aga
 
 1. Clone the repository
 2. Execute `play.py` with double click or with the console command `python play.py`
+
+
+
+# Features
+
+* Cards displaying
+* Betting system
+* Opportunity to 
+  * Double
+  * Insurance

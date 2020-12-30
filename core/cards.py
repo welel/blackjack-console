@@ -157,10 +157,10 @@ class DecksHolder(list):
     def __iter__(self):
         """Generates next card, reshuffle the stack when end reached.
         """
-        i = len(self)
+        i = len(self) - 1
         while True:
-            i -= 1
             if i < 0:
                 i = len(self) - 1
                 random.shuffle(self)
             yield self[i] 
+            i -= 1

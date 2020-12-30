@@ -206,9 +206,9 @@ class Game():
         exit(1)
 
     def make_bet(self):
-        """Asks a bet from user and returns it."""
+        """Asks user for bet and returns it."""
         while True:
-            print('Dealer have {bank} coins.\n'.format(
+            print('\n'*100 + 'Dealer have {bank} coins.\n'.format(
                 bank=self.dealer_box.user.bank)
             )
             ans = ask('you have {bank} coins. Make a bet.\n'.format(
@@ -216,6 +216,7 @@ class Game():
                     placeholder='Bet: ', user=self.player_box.user
             )
             if ans <= self.player_box.user.bank:
+                self.player_box.user.bank -= ans
                 self.bet = ans
                 return
             else:
@@ -228,12 +229,18 @@ class Game():
         if winner != 'draw':
             if winner == 'dealer':
                 print('You\'r lost!\n\n')
-                self.bet *= -1 
-            else:
+                self.dealer_box.user.bank += self.bet
+                if isinstance(self.insurance, bool):
+                    self.dealer_box.user.bank += self.bet // 2
+            elif winner == 'player':
                 print('You\'r won!\n\n')
-            self.dealer_box.user.bank -= self.bet
-            self.player_box.user.bank += self.bet
+                self.dealer_box.user.bank -= self.bet
+                self.player_box.user.bank += self.bet * 2
+            elif winner == 'insurance':
+                self.player_box.user.bank += self.bet + self.bet // 2
             input('\nPress \'Enter\' to continue...')
+            
+                
 
     def give_card(self, box):
         """Adds one card to a user's box."""
@@ -250,6 +257,28 @@ class Game():
         """Clears a state of the boxes."""
         self.dealer_box.clear()
         self.player_box.clear()
+        
+    def ask_insurance(self):
+        """Asks the player for insurance."""
+        if self.dealer_box.user.bank < (self.bet // 2):
+            return
+        while True:
+            ans = ask('your bet is {bet}.\nDo you insure?\n'\
+                      'You have {bank} coins.\n'.format(
+                        bank=self.player_box.user.bank,
+                        bet=self.bet
+                        ), 
+                        str,
+                        answers='(y)es / (n)o',
+                        user=self.player_box.user
+            )
+            if ans in ('y', 'yes'):
+                self.insurance = True
+                self.player_box.user.bank -= self.bet // 2
+                return
+            elif ans in ('n', 'no'):
+                self.insurance = None
+                return
            
     def player_decide(self):
         """The branch of player's decisions, (output/input) dialog.
@@ -265,6 +294,7 @@ class Game():
            ):
             answers.append('(d)double')
         while True:
+            print()
             answers = answers if len(self.player_box) == 2 else answers[:2]
             ans = ask('your move:', str, 
                 ' / '.join(answers), user=self.player_box.user
@@ -275,6 +305,7 @@ class Game():
                 time.sleep(self.delay)
                 return 'further'
             elif ans in ('d', 'double'):
+                self.player_box.user.bank -= self.bet
                 self.bet *= 2
                 self.give_card(self.player_box)
                 if self.player_box.score > 21:
@@ -294,6 +325,8 @@ class Game():
         """
         self.dealer_box.show_hidden_card()
         self.print_boxes()
+        if self.insurance and self.dealer_box.score == 21:
+            return 'insurance'
         time.sleep(self.delay)
         while True:
             if self.dealer_box.score > 21:
@@ -333,6 +366,7 @@ class Game():
                 continue 
               
             self.clear_boxes_state()
+            self.insurance = None
             self.make_bet()
             self.give_card(dealer_box)
             self.give_card(dealer_box)
@@ -341,7 +375,7 @@ class Game():
             self.print_boxes()
             
             if dealer_box.score == 11:
-                print('[NotImplementedYet]: ask for insurance\n\n')
+                self.ask_insurance()
             
             if player_box.score == 21:
                 print('Black Jack!\n')
@@ -360,4 +394,3 @@ class Game():
             self.count_winner(winner)
             
         return 0
-
