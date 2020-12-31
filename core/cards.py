@@ -1,8 +1,4 @@
-"""Classes repesent a playing card, a card deck, a deck holder. 
-
-TODO:
-    * Create a hand class, that will contain hand of user and
-      caulculate its score.
+"""Classes of: playing card, card deck, deck holder, hand with cards. 
 
 """
 
@@ -155,8 +151,7 @@ class DecksHolder(list):
         random.shuffle(self)
         
     def __iter__(self):
-        """Generates next card, reshuffle the stack when end reached.
-        """
+        """Generates next card, reshuffle the stack when end reached."""
         i = len(self) - 1
         while True:
             if i < 0:
@@ -164,3 +159,155 @@ class DecksHolder(list):
                 random.shuffle(self)
             yield self[i] 
             i -= 1
+
+
+class InvalidHandInitializationError(Exception):
+    """Exception for invalid hand of initialization.
+    
+    The class Hand takes only `Card` type.
+    
+    """
+    
+    def __init__(self, message):
+        Exception.__init__(self, message)
+
+
+class Hand(list):
+    """Represents a hand with cards of an user.
+    
+    The class Hand represents a hand that collects dealt cards.
+    Each card has a value. A score stores sums of that values.
+    
+    By default the score is sum of values of hand's cards. But one
+    card has multiple value that calculates in favor of a user.
+    The card Ace can be 11 or 1. An attribute `score` stores two
+    calculated scores of hand (with Ace = 11 and Ace = 1). And actual
+    score equals:
+           `max(score1, score2) if score1 > 21 else min(score1, score2)`.
+    
+    Attributes:
+        cards (self): Dealt cards.
+        score (list): Scores of the hand.
+
+    """
+    
+    def __init__(self, *args):
+        for card in args:
+            if not isinstance(card, Card):
+                raise InvalidHandInitializationError(
+                    f'The class Hand takes only {Card} type '\
+                    f'but {type(card)} was given.'
+                )
+        if args:
+            super().__init__(args)
+        self.score = [0, 0]
+        self._count_score()
+        
+    def _count_score(self):
+        """Counts the score of a hand and updates attribute `score`."""
+        score = 0
+        for card in self:
+            score += card.value
+        self.score[0] = score
+        for card in self:
+            if card.rank == RANKS[0]:
+                score -= 10
+        self.score[1] = (int(score))
+        
+    def score_str(self):
+        if (self.score[0] != self.score[1]) and\
+            (self.score[0] < 21 and self.score[1] < 21):
+            return f'{self.score[0]}/{self.score[1]}'
+        elif self.score[0] == 21:
+            return self.score[0]
+        else:
+            return str(min(self.score))
+            
+    def get_score(self):
+        if self.score[0] > 21:
+            return min(self.score)
+        else:
+            return self.score[0]
+    
+    def append(self, card):
+        """Adds a card and calls recount score function."""
+        super().append(card)
+        self._count_score()
+    
+    def _prepare_print(self):
+        """Prepares list of strs for print the hand in the console."""
+        show_struct = []
+        for_print = []
+        if len(self) == 0:
+            return 'Empty hand.'
+        for card in self:
+            show_struct.append(card.get_repr_struct())
+        if len(show_struct) == 1:   # condition for dealer hand
+            show_struct.append(CARD_BACK_STRUCT)
+        for i in range(4):
+            for j,_ in enumerate(show_struct):
+                for_print.append(show_struct[j][i])
+            for_print.append('\n')
+        for_print.append(f' Score: {self.score_str()}')
+        return for_print
+    
+    def to_str(self):
+        return ''.join(self._prepare_print())
+    
+    def clear(self):
+        """Clears cards from a hand and the score.""" 
+        super().clear()
+        self.score = [0, 0]    
+
+
+class PlayerHand(Hand):
+    """Player's hand with cards.
+    
+    """
+    
+    def __init__(self, *args):
+        super().__init__(*args)
+    
+    
+class DealerHand(Hand):
+    """Dealer's hand with a hidden card and others cards.
+    
+    The DealerHand extends Hand and has additional functionality which
+    implements dealer's ability to hide his first card on initial deal.
+    After player's decisions the hidden card of a dealer opens.
+    
+    Additional attributes:
+        hidden_card (Card): A hidden card of a dealer.
+        hide (bool): A flag, tells when show card.
+        
+    """
+    
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.hidden_card = None
+        self.hide = True
+        
+    def clear(self):
+        """Clears cards (including hidden) and score of the hand."""
+        super().clear()
+        self.hidden_card = None
+        self.hide = True
+        
+    def set_hidden_card(self, card):
+        self.hidden_card = card
+        self.hide = True
+        
+    def show_hidden_card(self):
+        """Appends the hidden card to countable cards."""
+        self.append(self.hidden_card)
+    
+    def append(self, card):
+        """Appends a card to dealer's hand.
+        
+        First appended card always goes like hidden.
+        
+        """
+        if not self.hidden_card:
+            self.set_hidden_card(card)
+        else:
+            super().append(card)
