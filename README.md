@@ -1,17 +1,22 @@
 <img src="details/header.png">
 
-# Console BlackJack 
+# BlackJack 
 
-This project is the console game Blackjack written with Python 3. One player against a dealer.
+This project is the console game Blackjack written with Python 3. One player against a dealer. The game with stakes. Take a challenge — win the dealer 5000 against 200.
 
 
 
 # How to play
 
-1. Clone the repository
-2. Execute `play.py` with double click or with the console command `python play.py`
+1. Clone the repository.
 
+2. Execute `play.py` with double click or with the next console command:
 
+   ```cmd
+   >python play.py
+   ```
+
+   
 
 # Features
 
