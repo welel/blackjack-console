@@ -8,9 +8,6 @@ so here too, and so on. Designed game has one principal difference with
 mechanic in reality is random shuffling of cards (and decisions of the
 dealer of course).
 
-TODO:
-    * BJ win.
-
 """
 
 
@@ -28,7 +25,7 @@ def ask(instraction: str, answer_type,
     
     Args:
         instraction (str): A question or an instractions for user.
-        answer_type (*): Expected answer type to return. 
+        answer_type (type): Expected answer type to return. 
         answers (str): A represent of available answers.
         placeholder (str): A placeholder for input() func.
         user (BaseUser): A user who is being asked.
@@ -71,7 +68,7 @@ class Game():
 
     def close(self):
         """Closes the game (the exit point of game)."""
-        print(f'\nThank you for the game, {self.player.name} !\n')
+        print(f'\nThank you for the game, {self.player.name}!\n')
         exit(1)
 
     def make_bet(self):
@@ -108,6 +105,10 @@ class Game():
         elif winner == 'draw':
             print('Draw!\n\n')
             self.player.bank += self.bet
+        elif winner == 'blackjack':
+            print('Blackjack!\n\n')
+            self.dealer.bank -= self.bet + self.bet // 2
+            self.player.bank += self.bet + self.bet // 2
         input('\nPress \'Enter\' to continue...')
             
     def give_card(self, hand):
@@ -145,6 +146,18 @@ class Game():
                 self.insurance = None
                 return
            
+    def ask_continue(self):
+        """Asks the player "take/continue", BJ against dealer's Ace."""
+        while True:
+            ans = ask('Take back (1 to 1) or continue?', str,
+                       answers='(t)ake / (c)ontinue\n'
+            ).lower()
+            if ans in ('t', 'take'):
+                self.player.bank += self.bet
+                return 'take'
+            elif ans in ('c', 'continue'):
+                return 'continue'
+    
     def player_decide(self):
         """The branch of player's decisions, (output/input) dialog.
         
@@ -240,9 +253,12 @@ class Game():
                 self.ask_insurance()
             
             if self.player_hand.get_score() == 21:
-                print('Black Jack!\n')
-                self.count_winner('player')
-                continue
+                if self.dealer_hand.get_score() == 11:
+                    ans = self.ask_continue()
+                    if ans == 'take': continue
+                else:
+                    self.count_winner('blackjack')
+                    continue
                 
             if self.player_hand[0] == self.player_hand[1]:
                 print('[NotImplementedYet]: ask for split\n\n')
