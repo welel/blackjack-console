@@ -9,41 +9,10 @@ mechanic in reality is random shuffling of cards (and decisions of the
 dealer of course).
 
 """
-
-
 import time
 
 from .cards import DecksHolder, PlayerHand, DealerHand
-
-
-
-def ask(instraction: str, answer_type,
-            answers: str='', placeholder: str='',
-            user=None
-    ):
-    """Asks a user a question and returns his answer.
-    
-    Args:
-        instraction (str): A question or an instractions for user.
-        answer_type (type): Expected answer type to return. 
-        answers (str): A represent of available answers.
-        placeholder (str): A placeholder for input() func.
-        user (BaseUser): A user who is being asked.
-    
-    """
-    while True:
-        if user:
-            print(user.name + ',', instraction)
-        else:
-            print(instraction)
-        if answers:
-            print('\tAnswers:' + answers)
-        try:
-            ans = answer_type(input(placeholder))
-        except ValueError:
-            print(f'Use {answer_type} type for answering.')
-            continue
-        return ans
+from .ti import *
 
 
 class Game():
@@ -68,76 +37,68 @@ class Game():
 
     def close(self):
         """Closes the game (the exit point of game)."""
-        print(f'\nThank you for the game, {self.player.name}!\n')
+        exit_word(self.player)
         exit(1)
 
     def make_bet(self):
         """Asks user for bet and returns it."""
         while True:
-            print('\n'*100 + 'Dealer have {bank} coins.\n'.format(
-                    bank=self.dealer.bank)
-            )
-            ans = ask(f'you have {self.player.bank} coins. Make a bet.\n', int,
-                        placeholder='Bet: ', user=self.player)
-            if ans <= self.player.bank:
-                self.player.bank -= ans
-                self.bet = ans
+            display_bank_info(self.dealer)
+            display_bank_info(self.player)
+            bet = ask_bet(self.player)
+            if bet <= self.player.bank:
+                self.player.bank -= bet
+                self.bet = bet
                 return
             else:
-                print('\n'*100+'You bet a lot, you don\'t have that much.\n',
-                        'Bet less.\n')
+                warn('overbet')
                 continue
                
-    def count_winner(self, winner: str):
+    def count_winner(self, result: str):
         """Counts the winner and changes bank accounts."""
-        if winner == 'dealer':
-            print('You\'r lost!\n\n')
+        if result == 'dealer':
+            announce_winner(self.dealer)
             self.dealer.bank += self.bet
             if isinstance(self.insurance, bool):
                 self.dealer.bank += self.bet // 2
-        elif winner == 'player':
-            print('You\'r won!\n\n')
+        elif result == 'player':
+            announce_winner(self.player)
             self.dealer.bank -= self.bet
             self.player.bank += self.bet * 2
-        elif winner == 'insurance':
-            print('You insured the hand.\n\n')
+        elif result == 'insured':
+            announce_winner(self.player, result)
             self.player.bank += self.bet + self.bet // 2
-        elif winner == 'draw':
-            print('Draw!\n\n')
+        elif result == 'draw':
+            announce_winner()
             self.player.bank += self.bet
-        elif winner == 'blackjack':
-            print('Blackjack!\n\n')
+        elif result == 'blackjack':
+            announce_winner(self.player, result)
             self.dealer.bank -= self.bet + self.bet // 2
             self.player.bank += self.bet + self.bet // 2
-        input('\nPress \'Enter\' to continue...')
+        stop_on_click()
             
     def give_card(self, hand):
-        """Adds one card to a user's hand."""
+        """Adds one card to an user's hand."""
         hand.append(next(self.dholder))
-        
-    def print_hands(self):
-        """Prints a state of the hands in the console."""
-        print('\n'*100 + 'Dealers hand:')
-        print(self.dealer_hand.to_str(), end='\n\n')
-        print('Players hand:')
-        print(self.player_hand.to_str(), end='\n\n')
+
         
     def clear_hand_states(self):
         """Clears a states of the hands."""
         self.dealer_hand.clear()
         self.player_hand.clear()
         
-    def ask_insurance(self):
-        """Asks the player for insurance."""
+    def offer_insurance(self):
+        """Offers the player the insurance."""
         if self.player.bank < (self.bet // 2):
             return
         while True:
-            ans = ask('your bet is {bet}.\nDo you insure?\n'\
-                      'You have {bank} coins.\n'.format(
-                            bank=self.player.bank, bet=self.bet
-                        ),
-                        str, answers='(y)es / (n)o', user=self.player
+            ask(str('your bet is {bet}.\nDo you insure?\n'
+                    'You have {bank} coins.\n'
+                   ).format(bank=self.player.bank, bet=self.bet),
+                answers='(y)es / (n)o',
+                user=self.player
             )
+            ans = get_answer(str)
             if ans in ('y', 'yes'):
                 self.insurance = True
                 self.player.bank -= self.bet // 2
@@ -149,9 +110,8 @@ class Game():
     def ask_continue(self):
         """Asks the player "take/continue", BJ against dealer's Ace."""
         while True:
-            ans = ask('Take back (1 to 1) or continue?', str,
-                       answers='(t)ake / (c)ontinue\n'
-            ).lower()
+            ask('Take the bet back or continue?', answers='(t)ake / (c)ontinue\n')
+            ans = get_answer(str)
             if ans in ('t', 'take'):
                 self.player.bank += self.bet
                 return 'take'
@@ -174,9 +134,8 @@ class Game():
         while True:
             print()
             answers = answers if len(self.player_hand) == 2 else answers[:2]
-            ans = ask('your move:', str, 
-                ' / '.join(answers), user=self.player
-                ).lower()
+            ask('your move:', answers=' / '.join(answers), user=self.player)
+            ans = get_answer(str)
             if ans in ('h', 'hit'):
                 self.give_card(self.player_hand)
             elif ans in ('s', 'stand'):
@@ -189,7 +148,7 @@ class Game():
                 if self.player_hand.get_score() > 21:
                     return 'dealer'
                 return 'further'
-            self.print_hands()
+            display_hands(self.dealer_hand, self.player_hand)
             if self.player_hand.get_score() > 21:
                 return 'dealer'
     
@@ -202,9 +161,9 @@ class Game():
         
         """
         self.dealer_hand.show_hidden_card()
-        self.print_hands()
+        display_hands(self.dealer_hand, self.player_hand)
         if self.insurance and self.dealer_hand.get_score() == 21:
-            return 'insurance'
+            return 'insured'
         time.sleep(self.delay)
         while True:
             if self.dealer_hand.get_score() > 21:
@@ -214,27 +173,19 @@ class Game():
             if self.dealer_hand.get_score() == self.player_hand.get_score():
                 return 'draw'
             self.give_card(self.dealer_hand)
-            self.print_hands()
+            display_hands(self.dealer_hand, self.player_hand)
             time.sleep(self.delay)
     
     def start(self, speed=2):
         """Main loop of the game logic."""
         self.delay = speed
-        print('\n'*100,
-              '='*10 + '   $   WELCOME TO   $   ' + '='*10 + '\n',
-              '='*10 + ' Best Console BlackJack ' + '='*10 + '\n',
-              f'\n\tHello, {self.player.name}!\t\n',
-              f'\tI\'m {self.dealer.name}, your dealer for today.\n',
-              '\tLet\'s have some fun!\n\n',
-              '='*45 + '\n\n'
-        )
-        input('\nPress \'Enter\' to continue...')
+        greet(self.dealer, self.player)
+        stop_on_click()
         
         while True:
-            ans = ask('\n'*100 + 'Press \'Enter\' to play the next hand'\
-                             ' or exit.', str,
-                             answers='[Press \'Enter\' / (e)xit]'
-            ).lower()
+            ask('\n'*100 + 'Press \'Enter\' to play the next hand or exit.',
+                    answers='[Press \'Enter\' / (e)xit]')
+            ans = get_answer(str)
             if ans in ('exit', 'e'):
                 self.close()
             elif ans:
@@ -247,10 +198,10 @@ class Game():
             self.give_card(self.dealer_hand)
             self.give_card(self.player_hand)
             self.give_card(self.player_hand)
-            self.print_hands()
+            display_hands(self.dealer_hand, self.player_hand)
             
             if self.dealer_hand.get_score() == 11:
-                self.ask_insurance()
+                self.offer_insurance()
             
             if self.player_hand.get_score() == 21:
                 if self.dealer_hand.get_score() == 11:
@@ -268,7 +219,7 @@ class Game():
                 self.count_winner(result)
                 continue
             
-            winner = self.dealer_decide()
-            self.count_winner(winner)
+            result = self.dealer_decide()
+            self.count_winner(result)
             
         return 0
