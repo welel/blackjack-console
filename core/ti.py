@@ -20,7 +20,7 @@ __all__ = (
 )
 
 WARNINGS = {
-    'overbet': 'You don\'t have that much coins.\nBet less.'
+    'overbet': '\nYou don\'t have that much coins.\nBet less.'
 }
 
 
@@ -77,7 +77,7 @@ def get_answer(type_: type, placeholder: str=''):
 
 def display_bank_info(user):
     """Prints state of bank of user."""
-    print('{name} have {bank} coins.\n'.format(name=user.name, bank=user.bank))
+    print('\n{name} have {bank} coins.\n'.format(name=user.name, bank=user.bank))
 
 
 def ask_bet(user):
@@ -88,6 +88,7 @@ def ask_bet(user):
 
 def display_hands(*hands: Hand):
     """Prints a state of the hands."""
+    print('\n' * 50)
     for hand in hands:
         print('{} hand:'.format(hand.__class__.__name__.replace('Hand', '\'s')))
         print(hand.to_str(), end='\n\n')
