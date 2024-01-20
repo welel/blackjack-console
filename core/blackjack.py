@@ -9,6 +9,7 @@ mechanic in reality is random shuffling of cards (and decisions of the
 dealer of course).
 
 """
+import os
 import time
 
 from .cards import DecksHolder, PlayerHand, DealerHand
@@ -38,7 +39,7 @@ class Game():
     def close(self):
         """Closes the game (the exit point of game)."""
         exit_word(self.player)
-        exit(1)
+        exit(os.EX_OK)
 
     def make_bet(self):
         """Asks user for bet and returns it."""
@@ -46,14 +47,15 @@ class Game():
             display_bank_info(self.dealer)
             display_bank_info(self.player)
             bet = ask_bet(self.player)
-            if bet <= self.player.bank:
+            if bet <= 0:
+                warn('negative_or_zero_bet')
+            elif bet <= self.player.bank:
                 self.player.bank -= bet
                 self.bet = bet
                 return
             else:
                 warn('overbet')
-                continue
-               
+
     def count_winner(self, result: str):
         """Counts the winner and changes bank accounts."""
         if result == 'dealer':

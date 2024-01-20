@@ -22,4 +22,7 @@ if __name__ == '__main__':
     dealer = Dealer(DEALER_NAME)
     player = Player(PLAYER_NAME)
     game = Game(dealer, player)
-    game.start(speed=SPEED)
+    try:
+        game.start(speed=SPEED)
+    except KeyboardInterrupt:
+        game.close()
