@@ -20,7 +20,8 @@ __all__ = (
 )
 
 WARNINGS = {
-    'overbet': '\nYou don\'t have that much coins.\nBet less.'
+    'overbet': '\nYou don\'t have that much coins.\nBet less.',
+    'negative_or_zero_bet': '\nYou can\'t bet zero or less coins.\nBet more.',
 }
 
 
@@ -95,7 +96,7 @@ def display_hands(*hands: Hand):
 
 
 def warn(warning: str):
-    """Prints warning for user.""" 
+    """Prints warning for user."""
     print(WARNINGS[warning])
 
 
