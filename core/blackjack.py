@@ -50,6 +50,9 @@ class Game():
                 self.player.bank -= bet
                 self.bet = bet
                 return
+            elif bet <= 0:
+                warn('invalid bet')
+                continue
             else:
                 warn('overbet')
                 continue
